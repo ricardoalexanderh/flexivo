@@ -1343,6 +1343,14 @@ const FlexivoPortfolio = () => {
                     ))}
                   </div>
                 </div>
+
+                {/* Easter Egg Hint */}
+                <div className="mt-12 p-4 bg-[#1a1a1a] rounded-lg border border-[#2a2a2a]">
+                  <p className="text-sm text-[#a3a3a3] text-center">
+                    <span className="inline-block mr-2">🌙</span>
+                    <span className="italic">Psst... try clicking the logo 5 times for a special surprise!</span>
+                  </p>
+                </div>
               </motion.div>
 
               {/* Contact Form */}
