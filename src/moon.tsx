@@ -42,7 +42,14 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
 
       // Camera setup
       camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.set(0, 3, 5);
+      
+      // Better camera positioning for mobile vs desktop
+      if (isMobile) {
+        camera.position.set(0, 4, 6); // Higher and further back for mobile
+        camera.lookAt(0, 0, 0); // Look at center/astronaut
+      } else {
+        camera.position.set(0, 3, 5);
+      }
 
       // Renderer setup
       renderer = new THREE.WebGLRenderer({ 
@@ -387,16 +394,16 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
     const updateCamera = () => {
       // Follow astronaut with camera
       const targetX = astronautPosition.x;
-      const targetZ = astronautPosition.z + (isMobile ? 4 : 5);
+      const targetZ = astronautPosition.z + (isMobile ? 6 : 5);
       
       camera.position.x += (targetX - camera.position.x) * 0.05;
       camera.position.z += (targetZ - camera.position.z) * 0.05;
 
       if (isMobile) {
-        // Touch-based camera rotation for mobile
-        cameraTarget.x = astronautPosition.x + Math.sin(cameraRotationY) * 3;
-        cameraTarget.y = 1.5 + cameraRotationX * 2;
-        cameraTarget.z = astronautPosition.z + Math.cos(cameraRotationY) * 3;
+        // Touch-based camera rotation for mobile - more centered view
+        cameraTarget.x = astronautPosition.x + Math.sin(cameraRotationY) * 2;
+        cameraTarget.y = 1.2 + cameraRotationX * 1.5;
+        cameraTarget.z = astronautPosition.z + Math.cos(cameraRotationY) * 2;
       } else {
         // Mouse look around for desktop
         cameraTarget.x = astronautPosition.x + mouseX * 2;
