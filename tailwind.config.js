@@ -10,7 +10,8 @@ export default {
       fontFamily: {
         'inter': ['Inter', 'sans-serif'],
         'orbitron': ['Orbitron', 'sans-serif'],
-        'atomic-age': ['Atomic Age', 'sans-serif'],
+        'tinos': ['Tinos', 'sans-serif'],
+        'higuen-serif': ['Higuen Serif', 'serif'],                
       },
       colors: {
         'clean-black': '#0a0a0a',

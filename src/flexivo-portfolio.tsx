@@ -583,7 +583,7 @@ const FlexivoPortfolio = () => {
   };
 
   return (
-    <div className={`${isDark ? 'dark' : ''} font-inter`}>
+    <div className={`${isDark ? 'dark' : ''} font-tinos`}>
       <div className="min-h-screen bg-white dark:bg-[#0a0a0a] text-[#0f172a] dark:text-white transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)] overflow-x-hidden">
         
         {/* Header */}
@@ -605,7 +605,7 @@ const FlexivoPortfolio = () => {
               </motion.div>
 
               {/* Desktop Navigation */}
-              <nav className="hidden md:flex space-x-8" role="navigation" aria-label="Main navigation">
+              <nav className="hidden md:flex space-x-8 font-inter" role="navigation" aria-label="Main navigation">
                 {['Work', 'Services', 'About', 'Contact'].map((item) => (
                   <motion.button
                     key={item}
@@ -694,7 +694,7 @@ const FlexivoPortfolio = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 1, ease: "easeOut" }}
             >
-              <h1 className="font-orbitron text-4xl md:text-6xl font-bold mb-6 text-[#0f172a] dark:text-white leading-normal pb-2">
+              <h1 className="font-higuen-serif text-4xl md:text-6xl font-bold mb-6 text-[#0f172a] dark:text-white leading-normal pb-2">
                 <span className="relative">
                   <span className="text-blue-600 dark:text-blue-400 text-5xl md:text-7xl">C</span>ontrol{' '}
                   <span className="text-blue-600 dark:text-blue-400 text-5xl md:text-7xl">W</span>ithin{' '}
@@ -768,7 +768,7 @@ const FlexivoPortfolio = () => {
                 >
                   <Diamond className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 </motion.div>
-                <span>
+                <span className="font-higuen-serif">
                   <span className="text-blue-600 dark:text-blue-400 text-5xl md:text-6xl">F</span>eatured{' '}
                   <span className="text-blue-600 dark:text-blue-400 text-5xl md:text-6xl">W</span>ork
                 </span>
@@ -1097,7 +1097,7 @@ const FlexivoPortfolio = () => {
                 >
                   <Diamond className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 </motion.div>
-                <span>
+                <span className="font-higuen-serif">
                   <span className="text-blue-600 dark:text-blue-400 text-5xl md:text-6xl">S</span>ervices
                 </span>
                 <motion.div
@@ -1174,8 +1174,9 @@ const FlexivoPortfolio = () => {
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
               >
-                <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                  <span className="text-blue-600 dark:text-blue-400 text-5xl md:text-6xl">F</span>lexivo
+                <h2 className="text-4xl md:text-5xl font-bold mb-6 font-higuen-serif">
+                  <span className="text-blue-600 dark:text-blue-400 text-5xl md:text-6xl">O</span>ur{' '}
+                  <span className="text-blue-600 dark:text-blue-400 text-5xl md:text-6xl">S</span>tudio
                 </h2>
                 <p className="text-lg text-[#64748b] dark:text-[#a3a3a3] mb-6">
                   Flexivo is a creative design studio specializing in visual storytelling and brand development. With over 5 years of industry experience, we craft compelling design solutions that bridge the gap between brands and their audiences through strategic visual communication.
@@ -1212,7 +1213,7 @@ const FlexivoPortfolio = () => {
               variants={stagger}
               className="text-center mb-16"
             >
-              <motion.h2 variants={fadeInUp} className="text-4xl md:text-5xl font-bold mb-6">
+              <motion.h2 variants={fadeInUp} className="text-4xl md:text-5xl font-bold mb-6 font-higuen-serif">
                 Let's Work Together
               </motion.h2>
               <motion.p variants={fadeInUp} className="text-xl text-[#a3a3a3] max-w-3xl mx-auto">
@@ -1249,8 +1250,8 @@ const FlexivoPortfolio = () => {
                     </div>
                     <div>
                       <p className="font-medium">Phone</p>
-                      <a href="tel:+1234567890" className="text-[#a3a3a3] hover:text-white transition-colors">
-                        +1 (234) 567-890
+                      <a href="tel:++6287872597290" className="text-[#a3a3a3] hover:text-white transition-colors">                        
+                        +62 878-7259-7290
                       </a>
                     </div>
                   </div>
@@ -1261,7 +1262,7 @@ const FlexivoPortfolio = () => {
                     </div>
                     <div>
                       <p className="font-medium">Location</p>
-                      <p className="text-[#a3a3a3]">San Francisco, CA</p>
+                      <p className="text-[#a3a3a3]">Jakarta, Indonesia</p>
                     </div>
                   </div>
                 </div>
