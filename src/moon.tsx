@@ -523,6 +523,9 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
     // Mobile touch controls for camera
     let touchStartX = 0, touchStartY = 0;
     const handleTouchStart = (event: TouchEvent) => {
+      // Prevent scrolling and pull-to-refresh
+      event.preventDefault();
+      
       if (event.touches.length === 1) {
         touchStartX = event.touches[0].clientX;
         touchStartY = event.touches[0].clientY;
@@ -530,6 +533,9 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
     };
 
     const handleTouchMove = (event: TouchEvent) => {
+      // Prevent scrolling and pull-to-refresh during camera control
+      event.preventDefault();
+      
       // Don't handle touch if popup is open
       if (showPopup) return;
       
@@ -557,10 +563,19 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
     // Setup mobile touch controls after renderer is ready
     setTimeout(() => {
       if (isMobile && renderer) {
-        renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: true });
-        renderer.domElement.addEventListener('touchmove', handleTouchMove, { passive: true });
+        renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+        renderer.domElement.addEventListener('touchmove', handleTouchMove, { passive: false });
       }
     }, 200);
+
+    // Prevent document-level scrolling and pull-to-refresh
+    const preventScroll = (e: TouchEvent) => {
+      e.preventDefault();
+    };
+    
+    document.addEventListener('touchstart', preventScroll, { passive: false });
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    document.addEventListener('touchend', preventScroll, { passive: false });
 
     setIsLoading(false);
     animate();
@@ -576,6 +591,12 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
         renderer?.domElement.removeEventListener('touchstart', handleTouchStart);
         renderer?.domElement.removeEventListener('touchmove', handleTouchMove);
       }
+      
+      // Remove document-level scroll prevention
+      document.removeEventListener('touchstart', preventScroll);
+      document.removeEventListener('touchmove', preventScroll);
+      document.removeEventListener('touchend', preventScroll);
+      
       if (cleanup) cleanup();
       if (renderer && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
@@ -585,7 +606,14 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
   }, [showPopup]);
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-b from-[#000011] to-[#000033] overflow-hidden">
+    <div 
+      className="fixed inset-0 bg-gradient-to-b from-[#000011] to-[#000033] overflow-hidden"
+      style={{ 
+        touchAction: 'none',
+        overscrollBehavior: 'none',
+        WebkitOverflowScrolling: 'auto'
+      }}
+    >
       {/* Back Button */}
       <button
         onClick={onBack}
