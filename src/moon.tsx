@@ -33,7 +33,7 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
     let isNearFlag = false;
     let wasNearFlag = false;
     let animationId: number;
-    const cameraRotationX = 0, cameraRotationY = 0;
+    let cameraRotationX = 0, cameraRotationY = 0;
 
     const init = () => {
       // Scene setup
@@ -520,12 +520,47 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
     };
 
+    // Mobile touch controls for camera
+    let touchStartX = 0, touchStartY = 0;
+    const handleTouchStart = (event: TouchEvent) => {
+      if (event.touches.length === 1) {
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      // Don't handle touch if popup is open
+      if (showPopup) return;
+      
+      if (event.touches.length === 1) {
+        const deltaX = event.touches[0].clientX - touchStartX;
+        const deltaY = event.touches[0].clientY - touchStartY;
+        
+        cameraRotationY += deltaX * 0.005;
+        cameraRotationX += deltaY * 0.005;
+        
+        cameraRotationX = Math.max(-0.5, Math.min(0.5, cameraRotationX));
+        
+        touchStartX = event.touches[0].clientX;
+        touchStartY = event.touches[0].clientY;
+      }
+    };
+
     if (!isMobile) {
       document.addEventListener('mousemove', handleMouseMove);
     }
 
     // Setup joystick after a short delay to ensure DOM elements exist
     setTimeout(setupJoystick, 100);
+
+    // Setup mobile touch controls after renderer is ready
+    setTimeout(() => {
+      if (isMobile && renderer) {
+        renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+        renderer.domElement.addEventListener('touchmove', handleTouchMove, { passive: true });
+      }
+    }, 200);
 
     setIsLoading(false);
     animate();
@@ -537,6 +572,9 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       }
       if (!isMobile) {
         document.removeEventListener('mousemove', handleMouseMove);
+      } else {
+        renderer?.domElement.removeEventListener('touchstart', handleTouchStart);
+        renderer?.domElement.removeEventListener('touchmove', handleTouchMove);
       }
       if (cleanup) cleanup();
       if (renderer && container.contains(renderer.domElement)) {
@@ -544,14 +582,20 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       }
       renderer?.dispose();
     };
-  }, []);
+  }, [showPopup]);
 
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-[#000011] to-[#000033] overflow-hidden">
       {/* Back Button */}
       <button
         onClick={onBack}
-        className="absolute top-4 left-4 z-50 p-3 rounded-lg bg-black/50 backdrop-blur-md border border-white/20 text-white hover:bg-black/70 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onBack();
+        }}
+        className="absolute top-4 left-4 z-50 p-3 rounded-lg bg-black/50 backdrop-blur-md border border-white/20 text-white hover:bg-black/70 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 touch-manipulation"
+        style={{ touchAction: 'manipulation' }}
         aria-label="Back to portfolio"
       >
         <ArrowLeft className="w-5 h-5" />
@@ -639,8 +683,14 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
 
       {/* Portfolio Popup */}
       {showPopup && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-50">
-          <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border-2 border-white/30 rounded-xl p-8 max-w-md mx-4 text-white text-center transform perspective-1000 rotate-x-10 rotate-y-5">
+        <div 
+          className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-50"
+          style={{ touchAction: 'none' }}
+        >
+          <div 
+            className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border-2 border-white/30 rounded-xl p-8 max-w-md mx-4 text-white text-center transform perspective-1000 rotate-x-10 rotate-y-5"
+            style={{ touchAction: 'auto' }}
+          >
             <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent font-inter">
               🚀 Welcome to Flexivo
             </h2>
@@ -672,18 +722,30 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
                 </div>
               </div>
             </div>
-            <div className="space-x-3">
+            <div className="flex flex-col sm:flex-row gap-3 sm:justify-center">
               <button
                 onClick={onBack}
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full text-white font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 font-inter"
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onBack();
+                }}
+                className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full text-white font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 font-inter touch-manipulation"
+                style={{ touchAction: 'manipulation' }}
               >
                 View Portfolio
               </button>
               <button
                 onClick={() => setShowPopup(false)}
-                className="px-6 py-3 bg-white/20 border border-white/30 rounded-full text-white font-medium hover:bg-white/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 font-inter"
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowPopup(false);
+                }}
+                className="w-full sm:w-auto px-6 py-3 bg-white/20 border border-white/30 rounded-full text-white font-medium hover:bg-white/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50 font-inter touch-manipulation"
+                style={{ touchAction: 'manipulation' }}
               >
-                Continue
+                Continue Exploring
               </button>
             </div>
           </div>
