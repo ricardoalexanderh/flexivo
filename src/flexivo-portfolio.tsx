@@ -1239,7 +1239,7 @@ const FlexivoPortfolio = () => {
                     <div>
                       <p className="font-medium">Email</p>
                       <a href="mailto:hello@flexivo.com" className="text-[#a3a3a3] hover:text-white transition-colors">
-                        hello@flexivo.com
+                        flexivodesign@gmail.com
                       </a>
                     </div>
                   </div>
