@@ -4,6 +4,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Sun, Moon, Menu, X, ArrowRight, Mail, Phone, MapPin, Palette, Monitor, FileText, Smartphone, TrendingUp, Package, Diamond } from 'lucide-react';
+import MoonExperience from './moon';
 import { FaGithub, FaLinkedin, FaInstagram } from 'react-icons/fa';
 import Lenis from 'lenis';
 
@@ -436,6 +437,9 @@ const About3DScene = ({ isDark }: { isDark: boolean }) => {
 const FlexivoPortfolio = () => {
   const [isDark, setIsDark] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showMoonExperience, setShowMoonExperience] = useState(false);
+  const [logoClickCount, setLogoClickCount] = useState(0);
+  const [showHint, setShowHint] = useState(false);
   
   // Initialize Lenis smooth scrolling
   useEffect(() => {
@@ -556,7 +560,7 @@ const FlexivoPortfolio = () => {
     setTimeout(() => {
       const element = document.getElementById(sectionId);
       if (element) {
-        const lenis = (window as any).__lenis;
+        const lenis = (window as typeof window & { __lenis?: { scrollTo: (element: Element, options: { duration: number; offset: number }) => void } }).__lenis;
         if (lenis) {
           lenis.scrollTo(element, { duration: 1.5, offset: -80 });
         } else {
@@ -572,6 +576,27 @@ const FlexivoPortfolio = () => {
   // Theme toggle
   const toggleTheme = () => {
     setIsDark(!isDark);
+  };
+
+  // Easter egg logo click handler
+  const handleLogoClick = () => {
+    const newCount = logoClickCount + 1;
+    setLogoClickCount(newCount);
+    
+    if (newCount === 3) {
+      setShowHint(true);
+      setTimeout(() => setShowHint(false), 3000);
+    } else if (newCount === 5) {
+      setShowMoonExperience(true);
+      setLogoClickCount(0);
+      setShowHint(false);
+    }
+    
+    // Reset counter after 5 seconds of inactivity
+    setTimeout(() => {
+      setLogoClickCount(0);
+      setShowHint(false);
+    }, 5000);
   };
 
   // Animation variants
@@ -590,17 +615,19 @@ const FlexivoPortfolio = () => {
   };
 
   return (
-    <div className={`${isDark ? 'dark' : ''} font-tinos`}>
+    <div className={`${isDark ? 'dark' : ''} font-tinos ${showMoonExperience ? 'overflow-hidden h-screen' : ''}`}>
       <div className="min-h-screen bg-white dark:bg-[#0a0a0a] text-[#0f172a] dark:text-white transition-all duration-500 ease-[cubic-bezier(0.25,0.8,0.25,1)] overflow-x-hidden">
         
         {/* Header */}
-        <header className="fixed top-0 w-full z-50 backdrop-blur-md bg-white/80 dark:bg-[#0a0a0a]/80 border-b border-gray-200 dark:border-[#1a1a1a]">
+        {!showMoonExperience && (
+          <header className="fixed top-0 w-full z-50 backdrop-blur-md bg-white/80 dark:bg-[#0a0a0a]/80 border-b border-gray-200 dark:border-[#1a1a1a]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
             <div className="flex justify-between items-center h-16">
-              {/* Logo */}
+              {/* Logo with Easter Egg */}
               <motion.div 
-                className="flex items-center"
+                className="flex items-center cursor-pointer relative"
                 whileHover={{ scale: 1.05 }}
+                onClick={handleLogoClick}
               >
                 <img
                   src={isDark ? "/logo-white.png" : "/logo-black.png"}
@@ -609,6 +636,20 @@ const FlexivoPortfolio = () => {
                   loading="eager"
                   decoding="async"
                 />
+                {/* Hint notification */}
+                <AnimatePresence>
+                  {showHint && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                      className="absolute -bottom-12 left-0 bg-blue-600 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap shadow-lg"
+                    >
+                      Click 2 more times to visit our secret base on the moon 🌙
+                      <div className="absolute top-0 left-4 w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-blue-600 transform -translate-y-full"></div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
 
               {/* Desktop Navigation */}
@@ -686,7 +727,11 @@ const FlexivoPortfolio = () => {
             )}
           </AnimatePresence>
         </header>
+        )}
 
+        {/* Main Content - Hidden when Moon Experience is active */}
+        {!showMoonExperience && (
+          <>
         {/* Hero Section */}
         <section id="hero" className="min-h-screen flex items-center justify-center relative overflow-hidden" aria-label="Hero section">
           {/* 3D Background */}
@@ -1386,7 +1431,16 @@ const FlexivoPortfolio = () => {
             </motion.div>
           </div>
         </section>
+        </>
+        )}
       </div>
+
+      {/* Moon Experience Easter Egg */}
+      <AnimatePresence>
+        {showMoonExperience && (
+          <MoonExperience onBack={() => setShowMoonExperience(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
