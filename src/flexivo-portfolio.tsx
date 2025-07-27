@@ -550,16 +550,23 @@ const FlexivoPortfolio = () => {
 
   // Smooth scroll function with Lenis
   const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      const lenis = (window as any).__lenis;
-      if (lenis) {
-        lenis.scrollTo(element, { duration: 1.5 });
-      } else {
-        element.scrollIntoView({ behavior: 'smooth' });
+    setIsMenuOpen(false); // Close menu first
+    
+    // Small delay to let menu close animation complete
+    setTimeout(() => {
+      const element = document.getElementById(sectionId);
+      if (element) {
+        const lenis = (window as any).__lenis;
+        if (lenis) {
+          lenis.scrollTo(element, { duration: 1.5, offset: -80 });
+        } else {
+          // Fallback for mobile browsers
+          const yOffset = -80;
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
       }
-    }
-    setIsMenuOpen(false);
+    }, 150);
   };
 
   // Theme toggle
@@ -642,11 +649,12 @@ const FlexivoPortfolio = () => {
 
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="md:hidden p-2 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a1a] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#0a0a0a]"
+                  className="md:hidden p-3 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a1a] hover:bg-gray-100 dark:hover:bg-[#2a2a2a] transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#0a0a0a] touch-manipulation"
                   aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
                   aria-expanded={isMenuOpen}
+                  type="button"
                 >
-                  {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                  {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 </button>
               </div>
             </div>
@@ -661,13 +669,14 @@ const FlexivoPortfolio = () => {
                 exit={{ opacity: 0, height: 0 }}
                 className="md:hidden bg-white dark:bg-[#0a0a0a] border-t border-gray-200 dark:border-[#1a1a1a]"
               >
-                <div className="px-4 py-6 space-y-4">
+                <div className="px-4 py-6 space-y-2">
                   {['Work', 'Services', 'About', 'Contact'].map((item) => (
                     <button
                       key={item}
                       onClick={() => scrollToSection(item.toLowerCase())}
-                      className="block w-full text-left text-[#64748b] dark:text-[#a3a3a3] hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#0a0a0a] rounded-md p-2 uppercase tracking-wider text-sm font-medium"
+                      className="block w-full text-left text-[#64748b] dark:text-[#a3a3a3] hover:text-blue-600 dark:hover:text-blue-400 active:text-blue-700 dark:active:text-blue-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#0a0a0a] rounded-md p-4 uppercase tracking-wider text-sm font-medium touch-manipulation min-h-[48px] flex items-center hover:bg-gray-50 dark:hover:bg-[#1a1a1a]"
                       aria-label={`Navigate to ${item} section`}
+                      type="button"
                     >
                       {item}
                     </button>
