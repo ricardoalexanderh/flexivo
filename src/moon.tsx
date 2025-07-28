@@ -1,11 +1,63 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import * as THREE from 'three';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 
 interface MoonProps {
   onBack: () => void;
 }
+
+// Featured work data for 3D gallery
+const galleryProjects = [
+  {
+    id: 1,
+    title: "Brand Identity - TechFlow",
+    category: "Branding",
+    description: "Complete brand identity redesign for a fintech startup, including logo, color palette, and brand guidelines.",
+    image: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=600&h=400&fit=crop",
+    tags: ["Logo Design", "Brand Guidelines", "Typography"]
+  },
+  {
+    id: 2,
+    title: "E-commerce Platform UI",
+    category: "Web Design",
+    description: "Modern, user-centric interface design for a sustainable fashion e-commerce platform.",
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=400&fit=crop",
+    tags: ["UI/UX", "E-commerce", "Responsive Design"]
+  },
+  {
+    id: 3,
+    title: "Restaurant Menu Design",
+    category: "Print Design",
+    description: "Elegant menu design combining modern typography with food photography for upscale dining.",
+    image: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=400&fit=crop",
+    tags: ["Print Design", "Typography", "Food Photography"]
+  },
+  {
+    id: 4,
+    title: "Mobile App Interface",
+    category: "UI/UX",
+    description: "Intuitive mobile app design for a meditation and wellness platform with calming aesthetics.",
+    image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&h=400&fit=crop",
+    tags: ["Mobile Design", "Wellness", "User Experience"]
+  },
+  {
+    id: 5,
+    title: "Event Poster Series",
+    category: "Marketing",
+    description: "Dynamic poster series for a music festival featuring bold typography and vibrant gradients.",
+    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&h=400&fit=crop",
+    tags: ["Poster Design", "Event Marketing", "Visual Identity"]
+  },
+  {
+    id: 6,
+    title: "Corporate Website",
+    category: "Web Design",
+    description: "Professional website redesign for a consulting firm with focus on trust and expertise.",
+    image: "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?w=600&h=400&fit=crop",
+    tags: ["Corporate Design", "Professional", "Responsive"]
+  }
+];
 
 const Moon: React.FC<MoonProps> = ({ onBack }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -13,6 +65,8 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
   const [showPopup, setShowPopup] = useState(false);
   const [distance, setDistance] = useState(0);
   const [position, setPosition] = useState({ x: 0, z: 0 });
+  const [selectedProject, setSelectedProject] = useState<typeof galleryProjects[0] | null>(null);
+  const [nearGalleryItem, setNearGalleryItem] = useState<number | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -21,19 +75,26 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
     // Global variables
     let scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer;
     let moon: THREE.Mesh, astronaut: THREE.Group, flag: THREE.Group;
+    const galleryFrames: THREE.Group[] = [];
+    let blinkingStars: THREE.Group;
     const joystick = { x: 0, y: 0, active: false };
-    let mouseX = 0, mouseY = 0;
     const cameraTarget = new THREE.Vector3();
     const isMobile = window.innerWidth <= 768;
     
+    // Camera control variables
+    let isDragging = false;
+    let previousMouseX = 0;
+    let previousMouseY = 0;
+    let cameraRotationX = 0, cameraRotationY = 0;
+    const cameraRotationSpeed = isMobile ? 0.005 : 0.008;
+    
     // Astronaut movement
-    const astronautSpeed = isMobile ? 0.015 : 0.02;
+    const astronautSpeed = isMobile ? 0.03 : 0.04;
     const astronautPosition = { x: 0, z: 0 };
     const flagPosition = { x: 3, z: -3 };
     let isNearFlag = false;
     let wasNearFlag = false;
     let animationId: number;
-    let cameraRotationX = 0, cameraRotationY = 0;
 
     const init = () => {
       // Scene setup
@@ -58,10 +119,10 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setClearColor(0x000011);
-      renderer.shadowMap.enabled = !isMobile;
-      if (!isMobile) {
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      }
+      
+      // Enable shadows for better visual quality
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = isMobile ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
       
       container.appendChild(renderer.domElement);
 
@@ -79,21 +140,42 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
     };
 
     const addStars = () => {
-      const starsGeometry = new THREE.BufferGeometry();
-      const starsMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: isMobile ? 1 : 2 });
+      const starCount = isMobile ? 100 : 200;
+      const starsGroup = new THREE.Group();
 
-      const starsVertices = [];
-      const starCount = isMobile ? 500 : 1000;
+      // Create visible stars positioned correctly
       for (let i = 0; i < starCount; i++) {
-        const x = (Math.random() - 0.5) * 2000;
-        const y = (Math.random() - 0.5) * 2000;
-        const z = (Math.random() - 0.5) * 2000;
-        starsVertices.push(x, y, z);
+        // Position stars much closer and in visible range
+        const x = (Math.random() - 0.5) * 200; // Spread across X
+        const y = 30 + Math.random() * 100; // Above the moon surface, within visible range
+        const z = (Math.random() - 0.5) * 200; // Spread across Z
+
+        // Create larger, more visible stars
+        const starGeometry = new THREE.SphereGeometry(0.2, 6, 6);
+        const starMaterial = new THREE.MeshBasicMaterial({ 
+          color: 0xffffff,
+          transparent: false, // Make them solid for better visibility
+          fog: false // Don't let fog affect the stars
+        });
+        
+        const star = new THREE.Mesh(starGeometry, starMaterial);
+        star.position.set(x, y, z);
+        
+        // Store blinking properties
+        (star as any).blinkSpeed = 0.5 + Math.random() * 2;
+        (star as any).blinkPhase = Math.random() * Math.PI * 2;
+        (star as any).baseOpacity = 1.0;
+        
+        starsGroup.add(star);
       }
 
-      starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starsVertices, 3));
-      const stars = new THREE.Points(starsGeometry, starsMaterial);
-      scene.add(stars);
+      scene.add(starsGroup);
+      console.log(`Added ${starCount} stars to the scene`); // Debug log
+      
+      // Store for blinking animation
+      (starsGroup as any).isBlinkingStars = true;
+      
+      return starsGroup;
     };
 
     const addLighting = () => {
@@ -104,17 +186,29 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       // Main directional light (sun)
       const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
       directionalLight.position.set(10, 10, 5);
-      if (!isMobile) {
-        directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 1024;
-        directionalLight.shadow.mapSize.height = 1024;
-      }
+      directionalLight.castShadow = true;
+      
+      // Shadow camera settings
+      directionalLight.shadow.mapSize.width = isMobile ? 512 : 1024;
+      directionalLight.shadow.mapSize.height = isMobile ? 512 : 1024;
+      directionalLight.shadow.camera.near = 0.5;
+      directionalLight.shadow.camera.far = 50;
+      directionalLight.shadow.camera.left = -20;
+      directionalLight.shadow.camera.right = 20;
+      directionalLight.shadow.camera.top = 20;
+      directionalLight.shadow.camera.bottom = -20;
+      
       scene.add(directionalLight);
 
       // Moon surface lighting
       const moonLight = new THREE.PointLight(0xaaaaff, 0.5, 20);
       moonLight.position.set(0, 2, 0);
       scene.add(moonLight);
+
+      // Additional lighting for gallery visibility
+      const galleryLight = new THREE.PointLight(0xffffff, 0.8, 30);
+      galleryLight.position.set(0, 8, 0); // High up to illuminate gallery
+      scene.add(galleryLight);
     };
 
     const createMoon = () => {
@@ -133,9 +227,7 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       moon = new THREE.Mesh(moonGeometry, moonMaterial);
       moon.rotation.x = -Math.PI / 2;
       moon.position.y = 0; // Ensure surface is at ground level
-      if (!isMobile) {
-        moon.receiveShadow = true;
-      }
+      moon.receiveShadow = true; // Always receive shadows
       scene.add(moon);
 
       // Add realistic craters on flat surface
@@ -199,7 +291,7 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
           0.5 + Math.random() * 0.3,
           1 + Math.random() * 0.5
         );
-        if (!isMobile) rock.castShadow = true;
+        rock.castShadow = true; // Always cast shadow
         scene.add(rock);
       }
     };
@@ -212,7 +304,7 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xf8f8f8 });
       const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
       body.position.y = 1.0;
-      if (!isMobile) body.castShadow = true;
+      body.castShadow = true; // Always cast shadow
       group.add(body);
 
       // Helmet
@@ -224,7 +316,7 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       });
       const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
       helmet.position.y = 1.65;
-      if (!isMobile) helmet.castShadow = true;
+      helmet.castShadow = true; // Always cast shadow
       group.add(helmet);
 
       // Arms
@@ -232,25 +324,25 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       const leftArm = new THREE.Mesh(armGeometry, bodyMaterial);
       leftArm.position.set(-0.45, 1.1, 0);
       leftArm.rotation.z = 0.2;
-      if (!isMobile) leftArm.castShadow = true;
+      leftArm.castShadow = true; // Always cast shadow
       group.add(leftArm);
 
       const rightArm = new THREE.Mesh(armGeometry, bodyMaterial);
       rightArm.position.set(0.45, 1.1, 0);
       rightArm.rotation.z = -0.2;
-      if (!isMobile) rightArm.castShadow = true;
+      rightArm.castShadow = true; // Always cast shadow
       group.add(rightArm);
 
       // Legs
       const legGeometry = new THREE.CylinderGeometry(0.1, 0.14, 0.8, 8);
       const leftLeg = new THREE.Mesh(legGeometry, bodyMaterial);
       leftLeg.position.set(-0.18, 0.4, 0);
-      if (!isMobile) leftLeg.castShadow = true;
+      leftLeg.castShadow = true; // Always cast shadow
       group.add(leftLeg);
 
       const rightLeg = new THREE.Mesh(legGeometry, bodyMaterial);
       rightLeg.position.set(0.18, 0.4, 0);
-      if (!isMobile) rightLeg.castShadow = true;
+      rightLeg.castShadow = true; // Always cast shadow
       group.add(rightLeg);
 
       // Boots/feet on the ground
@@ -258,12 +350,12 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       const bootMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
       const leftBoot = new THREE.Mesh(bootGeometry, bootMaterial);
       leftBoot.position.set(-0.18, 0.06, 0.05); // On ground level
-      if (!isMobile) leftBoot.castShadow = true;
+      leftBoot.castShadow = true; // Always cast shadow
       group.add(leftBoot);
 
       const rightBoot = new THREE.Mesh(bootGeometry, bootMaterial);
       rightBoot.position.set(0.18, 0.06, 0.05); // On ground level
-      if (!isMobile) rightBoot.castShadow = true;
+      rightBoot.castShadow = true; // Always cast shadow
       group.add(rightBoot);
 
       astronaut = group;
@@ -279,7 +371,7 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       const baseMaterial = new THREE.MeshLambertMaterial({ color: 0x666666 });
       const base = new THREE.Mesh(baseGeometry, baseMaterial);
       base.position.y = -0.05; // Partially buried
-      if (!isMobile) base.castShadow = true;
+      base.castShadow = true; // Always cast shadow
       group.add(base);
 
       // Flag pole (from ground up)
@@ -287,7 +379,7 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       const poleMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
       const pole = new THREE.Mesh(poleGeometry, poleMaterial);
       pole.position.y = 1.25; // Half of pole height to sit on ground
-      if (!isMobile) pole.castShadow = true;
+      pole.castShadow = true; // Always cast shadow
       group.add(pole);
 
       // Flag with Flexivo logo
@@ -332,12 +424,70 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       
       const flagMesh = new THREE.Mesh(flagGeometry, flagMaterial);
       flagMesh.position.set(0.6, 2, 0);
-      if (!isMobile) flagMesh.castShadow = true;
+      flagMesh.castShadow = true; // Always cast shadow
       group.add(flagMesh);
 
       flag = group;
       flag.position.set(flagPosition.x, 0, flagPosition.z);
       scene.add(flag);
+    };
+
+    const createGallery = () => {
+      const radius = 12; // Distance from center
+      const height = 2; // Reachable height for astronaut (astronaut is ~1.8 units tall)
+      
+      galleryProjects.forEach((project, index) => {
+        const angle = (index / galleryProjects.length) * Math.PI * 2;
+        const group = new THREE.Group();
+        
+        // Frame background
+        const frameGeometry = new THREE.PlaneGeometry(2.4, 1.8);
+        const frameMaterial = new THREE.MeshLambertMaterial({ 
+          color: 0x2a2a2a,
+          transparent: true,
+          opacity: 0.9
+        });
+        const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+        group.add(frame);
+        
+        // Frame border
+        const borderGeometry = new THREE.PlaneGeometry(2.6, 2.0);
+        const borderMaterial = new THREE.MeshLambertMaterial({ 
+          color: 0x4f46e5,
+          transparent: true,
+          opacity: 0.8
+        });
+        const border = new THREE.Mesh(borderGeometry, borderMaterial);
+        border.position.z = -0.01; // Slightly behind frame
+        group.add(border);
+        
+        // Load project image
+        const loader = new THREE.TextureLoader();
+        loader.load(project.image, (texture) => {
+          const imageGeometry = new THREE.PlaneGeometry(2.2, 1.6);
+          // Use MeshBasicMaterial for consistent brightness, unaffected by lighting
+          const imageMaterial = new THREE.MeshBasicMaterial({ 
+            map: texture,
+            transparent: true,
+            opacity: 0.95
+          });
+          const imageMesh = new THREE.Mesh(imageGeometry, imageMaterial);
+          imageMesh.position.z = 0.01; // Slightly in front of frame
+          group.add(imageMesh);
+        });
+        
+        // Position gallery item
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        group.position.set(x, height, z);
+        
+        // Face towards center
+        group.lookAt(0, height, 0);
+        
+        // Store reference
+        galleryFrames.push(group);
+        scene.add(group);
+      });
     };
 
     const getDistanceToFlag = () => {
@@ -347,11 +497,36 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       );
     };
 
+    const getDistanceToGalleryItem = (index: number) => {
+      const angle = (index / galleryProjects.length) * Math.PI * 2;
+      const radius = 12;
+      const galleryX = Math.cos(angle) * radius;
+      const galleryZ = Math.sin(angle) * radius;
+      
+      return Math.sqrt(
+        Math.pow(astronautPosition.x - galleryX, 2) +
+        Math.pow(astronautPosition.z - galleryZ, 2)
+      );
+    };
+
     const updateAstronaut = () => {
       if (joystick.active) {
-        // Move astronaut based on joystick
-        astronautPosition.x += joystick.x * astronautSpeed;
-        astronautPosition.z += joystick.y * astronautSpeed;
+        // Transform joystick input based on camera rotation for intuitive movement
+        // Corrected coordinate transformation to align with camera direction
+        const cameraForwardX = Math.cos(cameraRotationY);
+        const cameraForwardZ = Math.sin(cameraRotationY);
+        const cameraRightX = Math.sin(cameraRotationY);  // Fixed: removed negative sign
+        const cameraRightZ = -Math.cos(cameraRotationY); // Fixed: added negative sign
+        
+        // Apply joystick input relative to camera orientation
+        // joystick.y (forward/back) moves along camera forward direction
+        // joystick.x (left/right) moves along camera right direction
+        const transformedX = (joystick.y * cameraForwardX) + (joystick.x * cameraRightX);
+        const transformedZ = (joystick.y * cameraForwardZ) + (joystick.x * cameraRightZ);
+        
+        // Move astronaut based on camera-aligned joystick input
+        astronautPosition.x += transformedX * astronautSpeed;
+        astronautPosition.z += transformedZ * astronautSpeed;
 
         // Keep astronaut on the moon surface
         astronautPosition.x = Math.max(-18, Math.min(18, astronautPosition.x));
@@ -360,9 +535,9 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
         astronaut.position.x = astronautPosition.x;
         astronaut.position.z = astronautPosition.z;
 
-        // Rotate astronaut in movement direction
-        if (joystick.x !== 0 || joystick.y !== 0) {
-          const angle = Math.atan2(joystick.x, joystick.y);
+        // Rotate astronaut in movement direction (based on world coordinates)
+        if (transformedX !== 0 || transformedZ !== 0) {
+          const angle = Math.atan2(transformedX, transformedZ);
           astronaut.rotation.y = angle;
         }
 
@@ -386,31 +561,43 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       // Update previous state
       wasNearFlag = isNearFlag;
 
+      // Check gallery proximity
+      let nearestGalleryIndex = null;
+      let nearestDistance = Infinity;
+      
+      for (let i = 0; i < galleryProjects.length; i++) {
+        const distance = getDistanceToGalleryItem(i);
+        if (distance < 3 && distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestGalleryIndex = i;
+        }
+      }
+      
+      setNearGalleryItem(nearestGalleryIndex);
+
       // Update UI state
       setDistance(flagDistance);
       setPosition({ x: astronautPosition.x, z: astronautPosition.z });
     };
 
     const updateCamera = () => {
-      // Follow astronaut with camera
-      const targetX = astronautPosition.x;
-      const targetZ = astronautPosition.z + (isMobile ? 6 : 5);
+      // True orbital camera that can rotate 360 degrees around astronaut
+      const followDistance = isMobile ? 6 : 5;
+      const baseHeight = 3;
       
-      camera.position.x += (targetX - camera.position.x) * 0.05;
-      camera.position.z += (targetZ - camera.position.z) * 0.05;
+      // Calculate orbital position around astronaut
+      // Note: Using negative sin for Z to match Three.js coordinate system
+      const targetX = astronautPosition.x + Math.cos(cameraRotationY) * followDistance;
+      const targetZ = astronautPosition.z + Math.sin(cameraRotationY) * followDistance;
+      const targetY = baseHeight + (cameraRotationX * 3); // Vertical offset based on vertical rotation
+      
+      // Smooth camera movement
+      camera.position.x += (targetX - camera.position.x) * 0.08;
+      camera.position.z += (targetZ - camera.position.z) * 0.08;
+      camera.position.y += (targetY - camera.position.y) * 0.08;
 
-      if (isMobile) {
-        // Touch-based camera rotation for mobile - more centered view
-        cameraTarget.x = astronautPosition.x + Math.sin(cameraRotationY) * 2;
-        cameraTarget.y = 1.2 + cameraRotationX * 1.5;
-        cameraTarget.z = astronautPosition.z + Math.cos(cameraRotationY) * 2;
-      } else {
-        // Mouse look around for desktop
-        cameraTarget.x = astronautPosition.x + mouseX * 2;
-        cameraTarget.y = 1.5;
-        cameraTarget.z = astronautPosition.z + mouseY * 2;
-      }
-      
+      // Always look at the astronaut
+      cameraTarget.set(astronautPosition.x, 1.5, astronautPosition.z);
       camera.lookAt(cameraTarget);
     };
 
@@ -426,16 +613,69 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
         flag.children[1].rotation.y = Math.sin(time) * 0.1;
       }
 
+      // Animate gallery frames
+      galleryFrames.forEach((frame, index) => {
+        const time = Date.now() * 0.001;
+        const baseY = 2; // Match the reachable height
+        const floatAmount = Math.sin(time + index * 0.5) * 0.1; // Reduced float for reachability
+        frame.position.y = baseY + floatAmount;
+        
+        // Keep frames facing center instead of rotating
+        frame.lookAt(0, baseY + floatAmount, 0);
+        
+        // Glow effect when near
+        if (nearGalleryItem === index) {
+          const glowIntensity = 1 + Math.sin(time * 3) * 0.3;
+          frame.children.forEach((child) => {
+            if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshLambertMaterial) {
+              if (child === frame.children[1]) { // Border
+                child.material.opacity = 0.8 * glowIntensity;
+              }
+            }
+          });
+        } else {
+          frame.children.forEach((child) => {
+            if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshLambertMaterial) {
+              if (child === frame.children[1]) { // Border
+                child.material.opacity = 0.6;
+              }
+            }
+          });
+        }
+      });
+
+      // Animate blinking stars
+      if (blinkingStars && (blinkingStars as any).isBlinkingStars) {
+        const time = Date.now() * 0.001;
+        
+        // Animate each star individually
+        blinkingStars.children.forEach((star) => {
+          const mesh = star as THREE.Mesh;
+          const material = mesh.material as THREE.MeshBasicMaterial;
+          const blinkSpeed = (star as any).blinkSpeed;
+          const blinkPhase = (star as any).blinkPhase;
+          
+          // Create individual twinkling effect by changing scale
+          const blink = Math.sin(time * blinkSpeed + blinkPhase) * 0.3 + 0.7;
+          mesh.scale.setScalar(blink);
+          
+          // Also vary the color intensity
+          const intensity = Math.sin(time * blinkSpeed * 0.8 + blinkPhase) * 0.2 + 0.8;
+          material.color.setRGB(intensity, intensity, intensity);
+        });
+      }
+
       renderer.render(scene, camera);
     };
 
     // Initialize everything
     const cleanup = init();
-    addStars();
+    blinkingStars = addStars();
     addLighting();
     createMoon();
     createAstronaut();
     createFlag();
+    createGallery();
 
     // Setup joystick controls
     const setupJoystick = () => {
@@ -469,17 +709,22 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
         const maxDistance = isMobile ? 32 : 40;
 
+        // Calculate proper knob offset (half of knob size)
+        const knobOffset = isMobile ? 16 : 20; // 32px/2 for mobile, 40px/2 for desktop
+        
         if (distance <= maxDistance) {
+          // Full 360-degree joystick movement
           joystick.x = deltaX / maxDistance;
           joystick.y = deltaY / maxDistance;
-          joystickKnob.style.transform = `translate(${deltaX - (isMobile ? 17.5 : 20)}px, ${deltaY - (isMobile ? 17.5 : 20)}px)`;
+          joystickKnob.style.transform = `translate(${deltaX - knobOffset}px, ${deltaY - knobOffset}px)`;
         } else {
+          // Clamp to circle edge but maintain full 360-degree direction
           const angle = Math.atan2(deltaY, deltaX);
           const limitedX = Math.cos(angle) * maxDistance;
           const limitedY = Math.sin(angle) * maxDistance;
           joystick.x = limitedX / maxDistance;
           joystick.y = limitedY / maxDistance;
-          joystickKnob.style.transform = `translate(${limitedX - (isMobile ? 17.5 : 20)}px, ${limitedY - (isMobile ? 17.5 : 20)}px)`;
+          joystickKnob.style.transform = `translate(${limitedX - knobOffset}px, ${limitedY - knobOffset}px)`;
         }
       };
 
@@ -488,7 +733,9 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
         joystick.active = false;
         joystick.x = 0;
         joystick.y = 0;
-        joystickKnob.style.transform = `translate(${isMobile ? -17.5 : -20}px, ${isMobile ? -17.5 : -20}px)`;
+        // Reset to center using proper knob offset
+        const knobOffset = isMobile ? 16 : 20;
+        joystickKnob.style.transform = `translate(${-knobOffset}px, ${-knobOffset}px)`;
       };
 
       // Mouse events
@@ -521,57 +768,107 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       });
     };
 
-    // Setup controls
-    const handleMouseMove = (event: MouseEvent) => {
-      mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-      mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
-    };
+    // Setup drag controls for camera
+    const setupCameraControls = () => {
+      if (!renderer || !renderer.domElement) return;
 
-    // Mobile touch controls for camera
-    let touchStartX = 0, touchStartY = 0;
-    const handleTouchStart = (event: TouchEvent) => {
-      // Prevent scrolling and pull-to-refresh
-      event.preventDefault();
-      
-      if (event.touches.length === 1) {
-        touchStartX = event.touches[0].clientX;
-        touchStartY = event.touches[0].clientY;
-      }
-    };
+      // Mouse controls for desktop
+      const handleMouseDown = (event: MouseEvent) => {
+        if (event.button === 0) { // Left mouse button
+          isDragging = true;
+          previousMouseX = event.clientX;
+          previousMouseY = event.clientY;
+          renderer.domElement.style.cursor = 'grabbing';
+        }
+      };
 
-    const handleTouchMove = (event: TouchEvent) => {
-      // Prevent scrolling and pull-to-refresh during camera control
-      event.preventDefault();
-      
-      // Don't handle touch if popup is open
-      if (showPopup) return;
-      
-      if (event.touches.length === 1) {
-        const deltaX = event.touches[0].clientX - touchStartX;
-        const deltaY = event.touches[0].clientY - touchStartY;
-        
-        cameraRotationY += deltaX * 0.005;
-        cameraRotationX += deltaY * 0.005;
-        
-        cameraRotationX = Math.max(-0.5, Math.min(0.5, cameraRotationX));
-        
-        touchStartX = event.touches[0].clientX;
-        touchStartY = event.touches[0].clientY;
-      }
-    };
+      const handleMouseMove = (event: MouseEvent) => {
+        if (isDragging) {
+          const deltaX = event.clientX - previousMouseX;
+          const deltaY = event.clientY - previousMouseY;
+          
+          // Reverse X for more intuitive camera control (drag left = rotate left)
+          cameraRotationY -= deltaX * cameraRotationSpeed;
+          cameraRotationX -= deltaY * cameraRotationSpeed;
+          
+          // Limit vertical rotation to prevent flipping
+          cameraRotationX = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, cameraRotationX));
+          
+          previousMouseX = event.clientX;
+          previousMouseY = event.clientY;
+        }
+      };
 
-    if (!isMobile) {
+      const handleMouseUp = () => {
+        isDragging = false;
+        renderer.domElement.style.cursor = 'grab';
+      };
+
+      // Touch controls for mobile
+      const handleTouchStart = (event: TouchEvent) => {
+        event.preventDefault();
+        if (event.touches.length === 1 && !showPopup && !selectedProject) {
+          isDragging = true;
+          previousMouseX = event.touches[0].clientX;
+          previousMouseY = event.touches[0].clientY;
+        }
+      };
+
+      const handleTouchMove = (event: TouchEvent) => {
+        event.preventDefault();
+        if (isDragging && event.touches.length === 1 && !showPopup && !selectedProject) {
+          const deltaX = event.touches[0].clientX - previousMouseX;
+          const deltaY = event.touches[0].clientY - previousMouseY;
+          
+          // Reverse X for more intuitive camera control (drag left = rotate left)
+          cameraRotationY -= deltaX * cameraRotationSpeed;
+          cameraRotationX -= deltaY * cameraRotationSpeed;
+          
+          // Limit vertical rotation to prevent flipping
+          cameraRotationX = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, cameraRotationX));
+          
+          previousMouseX = event.touches[0].clientX;
+          previousMouseY = event.touches[0].clientY;
+        }
+      };
+
+      const handleTouchEnd = (event: TouchEvent) => {
+        event.preventDefault();
+        isDragging = false;
+      };
+
+      // Add event listeners
+      renderer.domElement.addEventListener('mousedown', handleMouseDown);
       document.addEventListener('mousemove', handleMouseMove);
-    }
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: false });
+      renderer.domElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+      renderer.domElement.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+      // Set initial cursor
+      renderer.domElement.style.cursor = 'grab';
+
+      // Return cleanup function
+      return () => {
+        renderer.domElement.removeEventListener('mousedown', handleMouseDown);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        
+        renderer.domElement.removeEventListener('touchstart', handleTouchStart);
+        renderer.domElement.removeEventListener('touchmove', handleTouchMove);
+        renderer.domElement.removeEventListener('touchend', handleTouchEnd);
+      };
+    };
 
     // Setup joystick after a short delay to ensure DOM elements exist
     setTimeout(setupJoystick, 100);
 
-    // Setup mobile touch controls after renderer is ready
+    // Setup camera controls after renderer is ready
+    let cameraControlsCleanup: (() => void) | undefined;
     setTimeout(() => {
-      if (isMobile && renderer) {
-        renderer.domElement.addEventListener('touchstart', handleTouchStart, { passive: false });
-        renderer.domElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+      if (renderer) {
+        cameraControlsCleanup = setupCameraControls();
       }
     }, 200);
 
@@ -592,11 +889,10 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       if (animationId) {
         cancelAnimationFrame(animationId);
       }
-      if (!isMobile) {
-        document.removeEventListener('mousemove', handleMouseMove);
-      } else {
-        renderer?.domElement.removeEventListener('touchstart', handleTouchStart);
-        renderer?.domElement.removeEventListener('touchmove', handleTouchMove);
+      
+      // Cleanup camera controls
+      if (cameraControlsCleanup) {
+        cameraControlsCleanup();
       }
       
       // Remove document-level scroll prevention
@@ -684,12 +980,42 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
       {!isLoading && (
         <div className="absolute bottom-4 left-4 z-30 bg-black/80 backdrop-blur-md border border-white/20 rounded-lg p-3 text-white max-w-xs">          
           {!window.innerWidth || window.innerWidth <= 768 ? (
-            <p className="text-sm">👆 Tap screen to look around</p>
+            <p className="text-sm">👆 Drag to look around</p>
           ) : (
-            <p className="text-sm">🖱️ Move mouse to look around</p>
+            <p className="text-sm">🖱️ Click & drag to look around</p>
           )}
           <p className="text-sm">🚀 Use joystick to move</p>
           <p className="text-sm">🚩 Visit the flag to see portfolio</p>
+          <p className="text-sm">🖼️ Approach floating frames to view work</p>
+        </div>
+      )}
+
+      {/* Gallery Item Preview */}
+      {!isLoading && nearGalleryItem !== null && (
+        <div className="absolute top-1/2 left-4 transform -translate-y-1/2 z-30 bg-black/90 backdrop-blur-md border border-white/20 rounded-lg p-4 text-white max-w-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-blue-400 font-medium">
+              {galleryProjects[nearGalleryItem].category}
+            </span>
+            <button
+              onClick={() => setSelectedProject(galleryProjects[nearGalleryItem])}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setSelectedProject(galleryProjects[nearGalleryItem]);
+              }}
+              className="text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded transition-colors touch-manipulation"
+              style={{ touchAction: 'manipulation' }}
+            >
+              View
+            </button>
+          </div>
+          <h3 className="text-sm font-semibold mb-1">
+            {galleryProjects[nearGalleryItem].title}
+          </h3>
+          <p className="text-xs text-gray-300 line-clamp-2">
+            {galleryProjects[nearGalleryItem].description}
+          </p>
         </div>
       )}
 
@@ -782,6 +1108,73 @@ const Moon: React.FC<MoonProps> = ({ onBack }) => {
               >
                 Continue Exploring
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Project Popup */}
+      {selectedProject && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center bg-black/90 backdrop-blur-sm z-50"
+          style={{ touchAction: 'none' }}
+        >
+          <div 
+            className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border-2 border-white/30 rounded-xl p-6 max-w-2xl mx-4 text-white transform perspective-1000"
+            style={{ touchAction: 'auto' }}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedProject(null)}
+              onTouchEnd={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setSelectedProject(null);
+              }}
+              className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors touch-manipulation"
+              style={{ touchAction: 'manipulation' }}
+              aria-label="Close project details"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Project Image */}
+            <div className="mb-6">
+              <img
+                src={selectedProject.image}
+                alt={selectedProject.title}
+                className="w-full h-64 object-cover rounded-lg"
+                loading="lazy"
+              />
+            </div>
+
+            {/* Project Details */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="text-sm bg-blue-600/80 backdrop-blur-sm px-3 py-1 rounded-full">
+                  {selectedProject.category}
+                </span>
+              </div>
+              
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                {selectedProject.title}
+              </h2>
+              
+              <p className="text-gray-300 leading-relaxed">
+                {selectedProject.description}
+              </p>
+
+              {/* Tags */}
+              <div className="flex flex-wrap gap-2">
+                {selectedProject.tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="text-xs bg-white/20 border border-white/30 px-2 py-1 rounded-full"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
