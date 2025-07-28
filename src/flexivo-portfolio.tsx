@@ -443,6 +443,9 @@ const FlexivoPortfolio = () => {
   
   // Initialize Lenis smooth scrolling
   useEffect(() => {
+    // Don't initialize Lenis when moon experience is active
+    if (showMoonExperience) return;
+
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -458,7 +461,36 @@ const FlexivoPortfolio = () => {
     return () => {
       lenis.destroy();
     };
-  }, []);
+  }, [showMoonExperience]);
+
+  // Handle moon experience state changes
+  useEffect(() => {
+    if (showMoonExperience) {
+      // Disable scroll when moon experience is active
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      // Ensure menu is closed
+      setIsMenuOpen(false);
+    } else {
+      // Re-enable scroll when returning from moon experience
+      document.body.style.overflow = 'auto';
+      document.body.style.position = 'static';
+      document.body.style.width = 'auto';
+      document.body.style.height = 'auto';
+    }
+
+    // Cleanup function
+    return () => {
+      if (!showMoonExperience) {
+        document.body.style.overflow = 'auto';
+        document.body.style.position = 'static';
+        document.body.style.width = 'auto';
+        document.body.style.height = 'auto';
+      }
+    };
+  }, [showMoonExperience]);
 
   // Sample project data
   const projects = [
@@ -587,6 +619,8 @@ const FlexivoPortfolio = () => {
       setShowHint(true);
       setTimeout(() => setShowHint(false), 3000);
     } else if (newCount === 5) {
+      // Close mobile menu when entering moon experience
+      setIsMenuOpen(false);
       setShowMoonExperience(true);
       setLogoClickCount(0);
       setShowHint(false);
@@ -620,7 +654,9 @@ const FlexivoPortfolio = () => {
         
         {/* Header */}
         {!showMoonExperience && (
-          <header className="fixed top-0 w-full z-50 backdrop-blur-md bg-white/80 dark:bg-[#0a0a0a]/80 border-b border-gray-200 dark:border-[#1a1a1a]">
+          <header 
+            key={`header-${showMoonExperience}`}
+            className="fixed top-0 w-full z-50 backdrop-blur-md bg-white/80 dark:bg-[#0a0a0a]/80 border-b border-gray-200 dark:border-[#1a1a1a]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12">
             <div className="flex justify-between items-center h-16">
               {/* Logo with Easter Egg */}
@@ -676,6 +712,11 @@ const FlexivoPortfolio = () => {
               <div className="flex items-center space-x-4">
                 <motion.button
                   onClick={toggleTheme}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleTheme();
+                  }}
                   className="p-2 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a1a] hover:bg-gray-200 dark:hover:bg-[#2a2a2a] transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#0a0a0a]"
                   whileHover={{ 
                     scale: 1.1, 
@@ -684,16 +725,23 @@ const FlexivoPortfolio = () => {
                   }}
                   whileTap={{ scale: 0.9, rotate: -5 }}
                   aria-label={`Switch to ${isDark ? 'light' : 'dark'} theme`}
+                  style={{ touchAction: 'manipulation' }}
                 >
                   {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </motion.button>
 
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsMenuOpen(!isMenuOpen);
+                  }}
                   className="md:hidden p-3 rounded-lg bg-[#f8fafc] dark:bg-[#1a1a1a] hover:bg-gray-100 dark:hover:bg-[#2a2a2a] transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-[#0a0a0a] touch-manipulation"
                   aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
                   aria-expanded={isMenuOpen}
                   type="button"
+                  style={{ touchAction: 'manipulation' }}
                 >
                   {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                 </button>
@@ -1446,7 +1494,21 @@ const FlexivoPortfolio = () => {
       {/* Moon Experience Easter Egg */}
       <AnimatePresence>
         {showMoonExperience && (
-          <MoonExperience onBack={() => setShowMoonExperience(false)} />
+          <MoonExperience onBack={() => {
+            setShowMoonExperience(false);
+            // Reset any mobile states when returning from moon
+            setIsMenuOpen(false);
+            // Re-enable body scroll and reset any scroll prevention
+            document.body.style.overflow = 'auto';
+            document.body.style.position = 'static';
+            document.body.style.width = 'auto';
+            document.body.style.height = 'auto';
+            // Force re-render of touch events by clearing any existing event listeners
+            setTimeout(() => {
+              // Small delay to ensure moon component cleanup is complete
+              window.dispatchEvent(new Event('resize'));
+            }, 100);
+          }} />
         )}
       </AnimatePresence>
     </div>
