@@ -883,7 +883,7 @@ const FlexivoPortfolio = () => {
                 </motion.div>
               </motion.h2>
               <motion.p variants={fadeInUp} className="text-xl text-[#64748b] dark:text-[#a3a3a3] max-w-3xl mx-auto">
-                A selection of projects that showcase my approach to solving design challenges and creating meaningful visual experiences.
+               We created designs that match your needs. Whether you're a business owner or event organizer, we've got you the designs for you.
               </motion.p>
             </motion.div>
 
@@ -1211,7 +1211,7 @@ const FlexivoPortfolio = () => {
                 </motion.div>
               </motion.h2>
               <motion.p variants={fadeInUp} className="text-xl text-[#64748b] dark:text-[#a3a3a3] max-w-3xl mx-auto">
-                Comprehensive design solutions tailored to elevate your brand and achieve your business objectives.
+                In addition to designs, we excel in services. We offer a variety of services that align with your needs.
               </motion.p>
             </motion.div>
 
@@ -1281,10 +1281,10 @@ const FlexivoPortfolio = () => {
                   <span className="text-blue-600 dark:text-blue-400 text-5xl md:text-6xl">S</span>tudio
                 </h2>
                 <p className="text-lg text-[#64748b] dark:text-[#a3a3a3] mb-6">
-                  Flexivo is a creative design studio specializing in visual storytelling and brand development. With over 5 years of industry experience, we craft compelling design solutions that bridge the gap between brands and their audiences through strategic visual communication.
+                  Based in the capital city of Indonesia, Jakarta, Flexivo offers high quality designs accompanied by premium-level services in a single package. We provide flexible services tailored to each client from the type of design to the delivery method. Our top priority is customer satisfaction, and we focus on creating designs that are not only powerful but also meaningful.
                 </p>
                 <p className="text-lg text-[#64748b] dark:text-[#a3a3a3] mb-8">
-                  Our philosophy centers on collaborative design thinking and innovative problem-solving. From comprehensive brand identities to digital experiences, we deliver design solutions that not only captivate visually but also drive meaningful business results for our clients.
+                  At Flexivo, we believe that in graphic design, the process is just as important as the final result. We are committed to elevating both the quality and the purpose of every design we deliver.
                 </p>
 
                 {/* Skills */}
